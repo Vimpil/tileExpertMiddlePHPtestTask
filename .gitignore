@@ -1,5 +1,27 @@
+# Dependency directories
+/vendor/
 
-###> phpunit/phpunit ###
-/phpunit.xml
+# Cache and logs
+/var/
+
+# Environment-specific files
+.env.local
+.env.*.local
+
+# PHPUnit cache
 /.phpunit.cache/
-###< phpunit/phpunit ###
+/.phpunit.result.cache
+/phpunit.xml.cache
+
+# IDE / Editor configs
+.idea/
+.vscode/
+
+# OS generated files
+.DS_Store
+
+# Misc
+*.log
+*.cache
+
+
