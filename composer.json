@@ -19,6 +19,7 @@
         "symfony/http-client": "7.2.*",
         "symfony/runtime": "7.2.*",
         "symfony/serializer": "7.2.*",
+        "symfony/validator": "7.2.*",
         "symfony/yaml": "7.2.*"
     },
     "config": {
@@ -70,5 +71,9 @@
             "allow-contrib": false,
             "require": "7.2.*"
         }
+    },
+    "require-dev": {
+        "symfony/browser-kit": "7.2.*",
+        "symfony/css-selector": "7.2.*"
     }
 }

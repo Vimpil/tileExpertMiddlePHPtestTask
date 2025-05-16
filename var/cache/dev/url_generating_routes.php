@@ -4,4 +4,9 @@
 
 return [
     '_preview_error' => [['code', '_format'], ['_controller' => 'error_controller::preview', '_format' => 'html'], ['code' => '\\d+'], [['variable', '.', '[^/]++', '_format', true], ['variable', '/', '\\d+', 'code', true], ['text', '/_error']], [], [], []],
+    'price' => [[], ['_controller' => 'App\\Controller\\PriceController::getPrice'], [], [['text', '/price']], [], [], []],
+    'order_stats' => [[], ['_controller' => 'App\\Controller\\OrderController::getOrderStats'], [], [['text', '/orders/stats']], [], [], []],
+    'soap_create_order' => [[], ['_controller' => 'App\\Controller\\OrderController::createOrder'], [], [['text', '/soap']], [], [], []],
+    'get_order' => [['id'], ['_controller' => 'App\\Controller\\OrderController::getOrder'], [], [['variable', '/', '[^/]++', 'id', true], ['text', '/orders']], [], [], []],
+    'search_orders' => [[], ['_controller' => 'App\\Controller\\OrderController::searchOrders'], [], [['text', '/search']], [], [], []],
 ];

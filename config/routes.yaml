@@ -1,5 +1,31 @@
+# config/routes.yaml
+
 controllers:
-    resource:
-        path: ../src/Controller/
-        namespace: App\Controller
-    type: attribute
+  resource: ../src/Controller/
+  type: attribute
+
+
+price:
+  path: /price
+  controller: App\Controller\PriceController::getPrice
+  methods: [GET]
+
+order_stats:
+  path: /orders/stats
+  controller: App\Controller\OrderController::getOrderStats
+  methods: [GET]
+
+soap_create_order:
+  path: /soap
+  controller: App\Controller\OrderController::createOrder
+  methods: [POST]
+
+get_order:
+  path: /orders/{id}
+  controller: App\Controller\OrderController::getOrder
+  methods: [GET]
+
+search_orders:
+  path: /search
+  controller: App\Controller\OrderController::searchOrders
+  methods: [GET]
