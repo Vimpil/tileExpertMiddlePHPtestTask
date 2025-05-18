@@ -1,5 +1,3 @@
-version: '3'
-
 services:
   php:
     build: .
@@ -8,10 +6,12 @@ services:
     volumes:
       - .:/var/www/html
     depends_on:
-      - db
-      - manticore
+      - db_test
     environment:
-      - DATABASE_URL=mysql://user:password@db:3306/my_database
+      - DATABASE_URL=mysql://root:root@db_test:3306/test
+    profiles:
+      - default
+      - test
 
   db:
     image: mysql:5.7
@@ -24,6 +24,22 @@ services:
       - ./docker/mysql/dump.sql:/docker-entrypoint-initdb.d/dump.sql
     ports:
       - "${MYSQL_PORT}:3306"
+    profiles:
+      - default
+
+  db_test:
+    image: mysql:5.7
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: test
+      MYSQL_USER: user
+      MYSQL_PASSWORD: password
+    volumes:
+      - ./docker/mysql/dump.sql:/docker-entrypoint-initdb.d/dump.sql
+    ports:
+      - "3307:3306"
+    profiles:
+      - test
 
   manticore:
     image: manticoresearch/manticore
@@ -32,6 +48,8 @@ services:
       - "9308:9308"
     volumes:
       - ./manticore.conf:/etc/manticoresearch/manticore.conf
+    profiles:
+      - default
 
   nginx:
     image: nginx:latest
@@ -42,6 +60,8 @@ services:
       - .:/var/www/html
     depends_on:
       - php
+    profiles:
+      - default
 
   phpmyadmin:
     image: phpmyadmin/phpmyadmin
@@ -49,8 +69,37 @@ services:
     ports:
       - "8080:80"        # Порт, на котором будет доступен phpMyAdmin на вашем хосте
     environment:
-      PMA_HOST: db       # Имя сервиса базы данных (MySQL)
+      PMA_HOST: db_test       # Имя сервиса базы данных (MySQL)
       PMA_USER: user     # Опционально, можно оставить пустым и вводить при входе
       PMA_PASSWORD: password
     depends_on:
-      - db
+      - db_test
+    profiles:
+      - default
+      - test
+
+###> doctrine/doctrine-bundle ###
+  database:
+    image: postgres:${POSTGRES_VERSION:-16}-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-app}
+      # You should definitely change the password in production
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-!ChangeMe!}
+      POSTGRES_USER: ${POSTGRES_USER:-app}
+    healthcheck:
+      test: ["CMD", "pg_isready", "-d", "${POSTGRES_DB:-app}", "-U", "${POSTGRES_USER:-app}"]
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+    volumes:
+      - database_data:/var/lib/postgresql/data:rw
+      # You may use a bind-mounted host directory instead, so that it is harder to accidentally remove the volume and lose all your data!
+      # - ./docker/db/data:/var/lib/postgresql/data:rw
+    profiles:
+      - default
+###< doctrine/doctrine-bundle ###
+
+volumes:
+###> doctrine/doctrine-bundle ###
+  database_data:
+###< doctrine/doctrine-bundle ###

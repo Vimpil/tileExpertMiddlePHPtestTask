@@ -7,14 +7,16 @@
         "php": ">=8.2",
         "ext-ctype": "*",
         "ext-iconv": "*",
-        "doctrine/orm": "^3.3",
-        "guzzlehttp/guzzle": "^7.9",
+        "doctrine/doctrine-bundle": "^2.14",
+        "doctrine/doctrine-migrations-bundle": "^3.4.2",
+        "doctrine/orm": "^3.3.3",
+        "guzzlehttp/guzzle": "^7.9.3",
         "manticoresoftware/manticoresearch-php": "dev-master",
-        "phpunit/phpunit": "^12.1",
+        "phpunit/phpunit": "^12.1.5",
         "symfony/console": "7.2.*",
         "symfony/dom-crawler": "7.2.*",
         "symfony/dotenv": "7.2.*",
-        "symfony/flex": "^2",
+        "symfony/flex": "^2.5.1",
         "symfony/framework-bundle": "7.2.*",
         "symfony/http-client": "7.2.*",
         "symfony/runtime": "7.2.*",
@@ -73,7 +75,9 @@
         }
     },
     "require-dev": {
+        "doctrine/doctrine-fixtures-bundle": "^4.1",
         "symfony/browser-kit": "7.2.*",
-        "symfony/css-selector": "7.2.*"
+        "symfony/css-selector": "7.2.*",
+        "symfony/maker-bundle": "^1.63"
     }
 }

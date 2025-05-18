@@ -9,4 +9,5 @@ return [
     'soap_create_order' => [[], ['_controller' => 'App\\Controller\\OrderController::createOrder'], [], [['text', '/soap']], [], [], []],
     'get_order' => [['id'], ['_controller' => 'App\\Controller\\OrderController::getOrder'], [], [['variable', '/', '[^/]++', 'id', true], ['text', '/orders']], [], [], []],
     'search_orders' => [[], ['_controller' => 'App\\Controller\\OrderController::searchOrders'], [], [['text', '/search']], [], [], []],
+    'debug_check_privileges' => [[], ['_controller' => 'App\\Controller\\DebugController::checkPrivileges'], [], [['text', '/debug/check-privileges']], [], [], []],
 ];

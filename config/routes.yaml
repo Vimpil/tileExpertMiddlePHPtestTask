@@ -4,7 +4,6 @@ controllers:
   resource: ../src/Controller/
   type: attribute
 
-
 price:
   path: /price
   controller: App\Controller\PriceController::getPrice
@@ -28,4 +27,9 @@ get_order:
 search_orders:
   path: /search
   controller: App\Controller\OrderController::searchOrders
+  methods: [GET]
+
+debug_check_privileges:
+  path: /debug/check-privileges
+  controller: App\Controller\DebugController::checkPrivileges
   methods: [GET]

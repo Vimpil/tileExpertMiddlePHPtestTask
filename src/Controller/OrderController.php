@@ -1,44 +1,50 @@
 <?php
 namespace App\Controller;
 
+use App\Entity\Order;
+use App\Entity\Orders;
+use Doctrine\Persistence\ManagerRegistry;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 
 class OrderController extends AbstractController
 {
+    private ManagerRegistry $doctrine;
+    public function __construct(ManagerRegistry $doctrine)
+    {
+        $this->doctrine = $doctrine;
+    }
+
+    /**
+     * @param Request $request
+     * @return JsonResponse
+     */
     public function getOrderStats(Request $request): JsonResponse
     {
+
         $page = $request->query->getInt('page', 1);
         $limit = $request->query->getInt('limit', 10);
         $groupBy = $request->query->get('group_by', 'month');
 
-        $stats = $this->getDoctrine()->getRepository('App\Entity\Order')->getOrderStats($page, $limit, $groupBy);
-        return new JsonResponse($stats);
-    }
+        $validGroupBy = ['day', 'month', 'year'];
+        if (!in_array($groupBy, $validGroupBy, true)) {
+            return new JsonResponse(['error' => 'Invalid group_by parameter'], JsonResponse::HTTP_BAD_REQUEST);
+        }
 
-    public function createOrder(Request $request): Response
-    {
-        $xml = $request->getContent();
-        $data = simplexml_load_string($xml); // Basic XML parsing
-        // Save order logic here (e.g., persist to DB)
-        return new Response('Order created', 200);
+        $stats = $this->doctrine->getRepository(Orders::class)->getOrderStats($page, $limit, $groupBy);
+        return new JsonResponse($stats);
     }
 
     public function getOrder(int $id): JsonResponse
     {
-        $order = $this->getDoctrine()->getRepository('App\Entity\Order')->find($id);
+        $order = $this->doctrine->getRepository(Orders::class)->find($id);
         if (!$order) {
             throw $this->createNotFoundException('Order not found');
         }
         return new JsonResponse(['id' => $order->getId(), 'create_date' => $order->getCreateDate()->format('Y-m-d H:i:s')]);
     }
 
-    public function searchOrders(Request $request, SearchService $searchService): JsonResponse
-    {
-        $query = $request->query->get('q');
-        $results = $searchService->searchOrders($query);
-        return new JsonResponse($results);
-    }
+
 }
 ?>
