@@ -5,12 +5,10 @@ namespace App\Repository;
 use App\Entity\Orders;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
-use Doctrine\ORM\Mapping as ORM;
 
 /**
  * @extends ServiceEntityRepository<Orders>
  */
-#[ORM\Entity(repositoryClass: self::class)]
 class OrdersRepository extends ServiceEntityRepository
 {
     public function __construct(ManagerRegistry $registry)
@@ -24,56 +22,141 @@ class OrdersRepository extends ServiceEntityRepository
      * @param int $page Page number (1-based)
      * @param int $limit Number of results per page
      * @param string $groupBy Grouping type ('day', 'month', 'year')
-     * @return array{page: int, limit: int, total_pages: int, data: array}
+     * @param \DateTimeInterface|null $startDate Optional start date filter
+     * @param \DateTimeInterface|null $endDate Optional end date filter
+     * @return array{page: int, limit: int, total_pages: int, total_items: int, data: array}
+     * @throws \InvalidArgumentException If groupBy is invalid or page/limit is invalid
      */
-    public function getOrderStats(int $page, int $limit, string $groupBy): array
-    {
-        // Validate groupBy parameter
+    public function getOrderStats(
+        int $page,
+        int $limit,
+        string $groupBy,
+        ?\DateTimeInterface $startDate = null,
+        ?\DateTimeInterface $endDate = null
+    ): array {
+        // Validate inputs
         $allowedGroupings = ['day', 'month', 'year'];
         if (!in_array($groupBy, $allowedGroupings, true)) {
             throw new \InvalidArgumentException('Invalid groupBy parameter. Use: ' . implode(', ', $allowedGroupings));
         }
+        if ($page < 1) {
+            throw new \InvalidArgumentException('Page must be at least 1');
+        }
+        if ($limit < 1) {
+            throw new \InvalidArgumentException('Limit must be at least 1');
+        }
 
-        // Build the query for grouped statistics
+        // Build query for grouped statistics
         $qb = $this->createQueryBuilder('o');
 
         switch ($groupBy) {
             case 'day':
-                $qb->select("DATE_FORMAT(o.createDate, '%Y-%m-%d') as date, COUNT(o.id) as count")
-                    ->groupBy('date');
-                $countField = "DATE_FORMAT(o.createDate, '%Y-%m-%d')";
+                $qb->select("SUBSTRING(o.createDate, 1, 10) AS period, COUNT(o.id) AS order_count");
+                $periodAlias = "period";
                 break;
             case 'month':
-                $qb->select("DATE_FORMAT(o.createDate, '%Y-%m') as month, COUNT(o.id) as count")
-                    ->groupBy('month');
-                $countField = "DATE_FORMAT(o.createDate, '%Y-%m')";
+                $qb->select("SUBSTRING(o.createDate, 1, 7) AS period, COUNT(o.id) AS order_count");
+                $periodAlias = "period";
                 break;
             case 'year':
-                $qb->select("YEAR(o.createDate) as year, COUNT(o.id) as count")
-                    ->groupBy('year');
-                $countField = "YEAR(o.createDate)";
+                $qb->select("SUBSTRING(o.createDate, 1, 4) AS period, COUNT(o.id) AS order_count");
+                $periodAlias = "period";
                 break;
         }
+
+        // Apply date filters
+        if ($startDate) {
+            $qb->andWhere('o.createDate >= :startDate')
+                ->setParameter('startDate', $startDate);
+        }
+        if ($endDate) {
+            $qb->andWhere('o.createDate <= :endDate')
+                ->setParameter('endDate', $endDate);
+        }
+
+        // Group and order by the alias
+        $qb->groupBy($periodAlias)
+            ->orderBy($periodAlias, 'DESC');
+
+        // Count total groups for pagination
+        $countQb = $this->createQueryBuilder('o');
+        switch ($groupBy) {
+            case 'day':
+                $countExpr = "SUBSTRING(o.createDate, 1, 10)";
+                break;
+            case 'month':
+                $countExpr = "SUBSTRING(o.createDate, 1, 7)";
+                break;
+            case 'year':
+                $countExpr = "SUBSTRING(o.createDate, 1, 4)";
+                break;
+        }
+        $countQb->select("COUNT(DISTINCT $countExpr) AS total");
+        if ($startDate) {
+            $countQb->andWhere('o.createDate >= :startDate')
+                ->setParameter('startDate', $startDate);
+        }
+        if ($endDate) {
+            $countQb->andWhere('o.createDate <= :endDate')
+                ->setParameter('endDate', $endDate);
+        }
+        $total = (int) $countQb->getQuery()->getSingleScalarResult();
+        $totalPages = (int) ceil($total / $limit);
+
+        // Add total items (all orders matching filters)
+        $totalItemsQb = $this->createQueryBuilder('o')
+            ->select('COUNT(o.id)');
+        if ($startDate) {
+            $totalItemsQb->andWhere('o.createDate >= :startDate')
+                ->setParameter('startDate', $startDate);
+        }
+        if ($endDate) {
+            $totalItemsQb->andWhere('o.createDate <= :endDate')
+                ->setParameter('endDate', $endDate);
+        }
+        $totalItems = (int) $totalItemsQb->getQuery()->getSingleScalarResult();
 
         // Apply pagination
         $qb->setFirstResult(($page - 1) * $limit)
             ->setMaxResults($limit);
 
-        // Execute the query
+        // Execute query
         $results = $qb->getQuery()->getArrayResult();
 
-        // Calculate total pages
-        $totalQuery = $this->createQueryBuilder('o')
-            ->select("COUNT(DISTINCT $countField) as total")
-            ->getQuery();
-        $total = (int) $totalQuery->getSingleScalarResult();
-        $totalPages = (int) ceil($total / $limit);
+        // Restriction: if page > 1 and no results, indicate no more items
+        if (empty($results)) {
+            throw new \OutOfBoundsException('No more items.');
+        }
+
+        // Format data consistently
+        $data = array_map(function ($row) use ($groupBy) {
+            if ($groupBy === 'day') {
+                return [
+                    'period' => $row['period'], // e.g., '2025-05-18'
+                    'count' => (int) $row['order_count'],
+                ];
+            } elseif ($groupBy === 'month') {
+                [$year, $month] = explode('-', $row['period']);
+                return [
+                    'year' => (int) $year,
+                    'month' => (int) $month,
+                    'count' => (int) $row['order_count'],
+                ];
+            } else {
+                return [
+                    'year' => (int) $row['period'],
+                    'count' => (int) $row['order_count'],
+                ];
+            }
+        }, $results);
 
         return [
             'page' => $page,
             'limit' => $limit,
             'total_pages' => $totalPages,
-            'data' => $results,
+            'total_items' => $totalItems,
+            'group_by' => $groupBy,
+            'data' => $data,
         ];
     }
 
@@ -102,8 +185,6 @@ class OrdersRepository extends ServiceEntityRepository
      */
     public function searchOrders(string $query): array
     {
-        // Note: This method assumes Manticore returns IDs, which are then used to fetch full entities
-        // For simplicity, we're using a LIKE search here; integrate with Manticore in the controller/service
         return $this->createQueryBuilder('o')
             ->where('o.name LIKE :query OR o.description LIKE :query')
             ->setParameter('query', '%' . $query . '%')

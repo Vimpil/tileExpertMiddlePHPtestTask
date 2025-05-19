@@ -8,7 +8,7 @@ use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: \App\Repository\OrdersRepository::class)]
 #[ORM\Table(name: 'orders')]
-#[ORM\Index(columns: ['delivery_country'], name: 'IDX_1')]
+#[ORM\Index(name: 'IDX_1', columns: ['delivery_country'])]
 #[ORM\Index(columns: ['user_id'], name: 'IDX_2')]
 #[ORM\Index(columns: ['create_date'], name: 'IDX_3')]
 #[ORM\Index(columns: ['create_date', 'status'], name: 'IDX_4')]

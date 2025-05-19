@@ -1,7 +1,7 @@
 <?php
 namespace App\Command;
 
-use App\Entity\Order;
+use App\Entity\Orders;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
@@ -26,7 +26,7 @@ class GenerateOrdersCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         for ($i = 0; $i < 1000; $i++) {
-            $order = new Order();
+            $order = new Orders();
             $order->setHash(uniqid());
             $order->setToken(bin2hex(random_bytes(16)));
             $order->setName('Order ' . $i);
