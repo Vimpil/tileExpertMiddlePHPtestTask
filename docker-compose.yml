@@ -48,20 +48,10 @@ services:
       - "9308:9308"
     volumes:
       - ./manticore.conf:/etc/manticoresearch/manticore.conf
+      - ./manticore_data:/var/lib/manticore
     profiles:
       - default
-
-  nginx:
-    image: nginx:latest
-    ports:
-      - "${NGINX_PORT}:80"
-    volumes:
-      - ./nginx.conf:/etc/nginx/conf.d/default.conf
-      - .:/var/www/html
-    depends_on:
-      - php
-    profiles:
-      - default
+      - test
 
   phpmyadmin:
     image: phpmyadmin/phpmyadmin
@@ -77,29 +67,5 @@ services:
     profiles:
       - default
       - test
-
-###> doctrine/doctrine-bundle ###
-  database:
-    image: postgres:${POSTGRES_VERSION:-16}-alpine
-    environment:
-      POSTGRES_DB: ${POSTGRES_DB:-app}
-      # You should definitely change the password in production
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-!ChangeMe!}
-      POSTGRES_USER: ${POSTGRES_USER:-app}
-    healthcheck:
-      test: ["CMD", "pg_isready", "-d", "${POSTGRES_DB:-app}", "-U", "${POSTGRES_USER:-app}"]
-      timeout: 5s
-      retries: 5
-      start_period: 60s
-    volumes:
-      - database_data:/var/lib/postgresql/data:rw
-      # You may use a bind-mounted host directory instead, so that it is harder to accidentally remove the volume and lose all your data!
-      # - ./docker/db/data:/var/lib/postgresql/data:rw
-    profiles:
-      - default
-###< doctrine/doctrine-bundle ###
-
 volumes:
-###> doctrine/doctrine-bundle ###
-  database_data:
-###< doctrine/doctrine-bundle ###
+  manticore_data:

@@ -22,6 +22,28 @@ class OrderControllerTest extends WebTestCase
         $this->assertArrayHasKey('message', $data);
         $this->assertEquals('Privileges logged successfully.', $data['message']);
     }
+    public function testGetOneOrder()
+    {
+        $client = static::createClient();
+
+        // Test 404 for non-existent order
+        $client->request('GET', '/orders/2');
+        if ($client->getResponse()->getStatusCode() === 200) {
+            $orderData = json_decode($client->getResponse()->getContent(), true);
+            if (!empty($orderData)) {
+                print_r($orderData);
+            }
+            $this->assertArrayHasKey('id', $orderData);
+            $this->assertArrayHasKey('create_date', $orderData);
+            $this->assertJson($client->getResponse()->getContent());
+        } else {
+            $notFoundData = json_decode($client->getResponse()->getContent(), true);
+            echo "Order not found response: " . print_r($notFoundData, true) . "\n";
+            $this->assertArrayHasKey('error', $notFoundData);
+            $this->assertEquals('Order not found', $notFoundData['error']);
+            $this->fail('Order not found, test failed.');
+        }
+    }
     public function testGetOrderStats()
     {
         $client = static::createClient();
@@ -59,7 +81,7 @@ class OrderControllerTest extends WebTestCase
                 (strpos($e->getMessage(), 'No more items') !== false)
             ) {
                 echo "\nNo more items for page $page. This is expected for empty pages.\n";
-                $this->markTestSkipped('No more items for this page.');
+                $this->fail('No more items for this page. Test failed.');
             } else {
                 throw $e;
             }
@@ -109,19 +131,54 @@ XML;
 
         $this->assertResponseStatusCodeSame(201);
         $data = json_decode($client->getResponse()->getContent(), true);
-        $this->assertArrayHasKey('message', $data);
-        $this->assertEquals('Order created', $data['message']);
-        $this->assertArrayHasKey('id', $data);
-        $this->assertIsInt($data['id']);
-
-        // Best practice: Inform about the added data for debugging and traceability
-        echo "\nOrder with ID {$data['id']} was successfully created in the database during testCreateOrder.\n";
+        try {
+            $this->assertArrayHasKey('message', $data);
+            $this->assertEquals('Order created', $data['message']);
+            $this->assertArrayHasKey('id', $data);
+            $this->assertIsInt($data['id']);
+            // Best practice: Inform about the added data for debugging and traceability
+            echo "\nOrder with ID {$data['id']} was successfully created in the database during testCreateOrder.\n";
+        } catch (\Throwable $e) {
+            $this->fail('Order creation response invalid: ' . $e->getMessage());
+        }
     }
-    
+
+    public function testSearchOrders(): void
+    {
+        $client = static::createClient();
+        $query = '56'; // Use empty query to match all documents
+
+        $client->request('GET', '/search', ['q' => $query]);
+
+        $this->assertResponseIsSuccessful();
+        $content = $client->getResponse()->getContent();
+        $this->assertJson($content);
+        $data = json_decode($content, true);
+
+        $this->assertIsArray($data);
+        $this->assertArrayHasKey('hits', $data);
+        $this->assertArrayHasKey('total', $data);
+        $this->assertArrayHasKey('error', $data);
+        $this->assertArrayHasKey('warning', $data);
+
+        // Check that there's no error from Manticore
+        $this->assertNull($data['error'], 'Search service reported an error: ' . ($data['error'] ?? 'null'));
+
+        if (empty($data['hits']) || $data['total'] === 0) {
+            $this->fail('No search results found for the given query.');
+        }
+
+        // Main check: expect total > 0 for match_all query
+        $this->assertGreaterThan(0, $data['total'], 'Expected search results for empty query (should match all)');
+        $this->assertIsArray($data['hits']);
+        $this->assertNotEmpty($data['hits'], 'Hits array should not be empty if total > 0');
+
+        print_r($data);
+        printf(
+            "%s passed | query: %s, result_count: %d\n",
+            __METHOD__,
+            $query,
+            is_array($data['hits']) ? count($data['hits']) : 0
+        );
+    }
 }
-
-// To see deprecation and error details when running PHPUnit, use:
-//    phpunit --display-deprecations --stderr
-// or add <displayDeprecations>true</displayDeprecations> in your phpunit.xml(.dist) config.
-// This will show which code is using deprecated features or causing issues.
-

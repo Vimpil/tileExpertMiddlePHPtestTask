@@ -7,6 +7,7 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use App\Service\SearchService;
 
 class OrderController extends AbstractController
 {
@@ -122,4 +123,12 @@ class OrderController extends AbstractController
             'id' => $order->getId(),
         ], 201);
     }
+
+    public function searchOrders(Request $request, SearchService $searchService): JsonResponse
+    {
+        $query = $request->query->get('q');
+        $results = $searchService->searchOrders($query);
+        return new JsonResponse($results);
+    }
 }
+

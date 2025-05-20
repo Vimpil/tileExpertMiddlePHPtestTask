@@ -33,7 +33,6 @@ class ComposerStaticInit74ab73114a599f4a2997b6a284f9e273
             'Symfony\\Flex\\' => 13,
             'Symfony\\Contracts\\Translation\\' => 30,
             'Symfony\\Contracts\\Service\\' => 26,
-            'Symfony\\Contracts\\HttpClient\\' => 29,
             'Symfony\\Contracts\\EventDispatcher\\' => 34,
             'Symfony\\Contracts\\Cache\\' => 24,
             'Symfony\\Component\\Yaml\\' => 23,
@@ -48,7 +47,6 @@ class ComposerStaticInit74ab73114a599f4a2997b6a284f9e273
             'Symfony\\Component\\Process\\' => 26,
             'Symfony\\Component\\HttpKernel\\' => 29,
             'Symfony\\Component\\HttpFoundation\\' => 33,
-            'Symfony\\Component\\HttpClient\\' => 29,
             'Symfony\\Component\\Finder\\' => 25,
             'Symfony\\Component\\Filesystem\\' => 29,
             'Symfony\\Component\\EventDispatcher\\' => 34,
@@ -80,6 +78,18 @@ class ComposerStaticInit74ab73114a599f4a2997b6a284f9e273
             'Masterminds\\' => 12,
             'Manticoresearch\\' => 16,
         ),
+        'L' => 
+        array (
+            'Laminas\\Validator\\' => 18,
+            'Laminas\\Uri\\' => 12,
+            'Laminas\\Translator\\' => 19,
+            'Laminas\\Stdlib\\' => 15,
+            'Laminas\\Soap\\' => 13,
+            'Laminas\\ServiceManager\\' => 23,
+            'Laminas\\Server\\' => 15,
+            'Laminas\\Escaper\\' => 16,
+            'Laminas\\Code\\' => 13,
+        ),
         'H' => 
         array (
             'Http\\Discovery\\' => 15,
@@ -108,6 +118,10 @@ class ComposerStaticInit74ab73114a599f4a2997b6a284f9e273
             'Doctrine\\Bundle\\FixturesBundle\\' => 31,
             'Doctrine\\Bundle\\DoctrineBundle\\' => 31,
             'DeepCopy\\' => 9,
+        ),
+        'B' => 
+        array (
+            'Brick\\VarExporter\\' => 18,
         ),
         'A' => 
         array (
@@ -152,10 +166,6 @@ class ComposerStaticInit74ab73114a599f4a2997b6a284f9e273
         'Symfony\\Contracts\\Service\\' => 
         array (
             0 => __DIR__ . '/..' . '/symfony/service-contracts',
-        ),
-        'Symfony\\Contracts\\HttpClient\\' => 
-        array (
-            0 => __DIR__ . '/..' . '/symfony/http-client-contracts',
         ),
         'Symfony\\Contracts\\EventDispatcher\\' => 
         array (
@@ -212,10 +222,6 @@ class ComposerStaticInit74ab73114a599f4a2997b6a284f9e273
         'Symfony\\Component\\HttpFoundation\\' => 
         array (
             0 => __DIR__ . '/..' . '/symfony/http-foundation',
-        ),
-        'Symfony\\Component\\HttpClient\\' => 
-        array (
-            0 => __DIR__ . '/..' . '/symfony/http-client',
         ),
         'Symfony\\Component\\Finder\\' => 
         array (
@@ -314,6 +320,42 @@ class ComposerStaticInit74ab73114a599f4a2997b6a284f9e273
         array (
             0 => __DIR__ . '/..' . '/manticoresoftware/manticoresearch-php/src/Manticoresearch',
         ),
+        'Laminas\\Validator\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/laminas/laminas-validator/src',
+        ),
+        'Laminas\\Uri\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/laminas/laminas-uri/src',
+        ),
+        'Laminas\\Translator\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/laminas/laminas-translator/src',
+        ),
+        'Laminas\\Stdlib\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/laminas/laminas-stdlib/src',
+        ),
+        'Laminas\\Soap\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/laminas/laminas-soap/src',
+        ),
+        'Laminas\\ServiceManager\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/laminas/laminas-servicemanager/src',
+        ),
+        'Laminas\\Server\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/laminas/laminas-server/src',
+        ),
+        'Laminas\\Escaper\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/laminas/laminas-escaper/src',
+        ),
+        'Laminas\\Code\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/laminas/laminas-code/src',
+        ),
         'Http\\Discovery\\' => 
         array (
             0 => __DIR__ . '/..' . '/php-http/discovery/src',
@@ -393,6 +435,10 @@ class ComposerStaticInit74ab73114a599f4a2997b6a284f9e273
         'DeepCopy\\' => 
         array (
             0 => __DIR__ . '/..' . '/myclabs/deep-copy/src/DeepCopy',
+        ),
+        'Brick\\VarExporter\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/brick/varexporter/src',
         ),
         'App\\Tests\\' => 
         array (
