@@ -266,4 +266,4 @@ tile-expert-app/
 ## Contributing
 
 Submit issues or pull requests to the GitHub repository:  
-https://github.com/username/tile-expert-app
+https://github.com/Vimpil/tileExpertMiddlePHPtestTask/
