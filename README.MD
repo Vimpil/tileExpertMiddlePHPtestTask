@@ -77,11 +77,60 @@ make up
 
 ### 4. Install Dependencies
 
+#### Option 1: Install Dependencies Inside Docker (Recommended)
+
 Install PHP dependencies via Composer:
 
 ```sh
 docker-compose exec php composer install
 ```
+
+#### Option 2: Install Dependencies Outside Docker
+
+If you prefer to install dependencies directly on your host machine:
+
+1. **Install Composer** (if not already installed):
+
+   **For macOS/Linux:**
+   ```sh
+   # Download the installer
+   php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
+   
+   # Verify the installer
+   php -r "if (hash_file('sha384', 'composer-setup.php') === trim(file_get_contents('https://composer.github.io/installer.sig'))) { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); } echo PHP_EOL;"
+   
+   # Run the installer
+   php composer-setup.php
+   
+   # Remove the installer
+   php -r "unlink('composer-setup.php');"
+   
+   # Make Composer globally available (optional)
+   sudo mv composer.phar /usr/local/bin/composer
+   ```
+
+   **For Windows:**
+   - Download and run the [Composer-Setup.exe](https://getcomposer.org/Composer-Setup.exe)
+   - Follow the installation wizard instructions
+
+2. **Install project dependencies:**
+   ```sh
+   # Navigate to your project directory if needed
+   cd /path/to/tileExpertMiddlePHPtestTask
+   
+   # Install dependencies
+   composer install
+   ```
+
+   If you encounter memory limit issues:
+   ```sh
+   php -d memory_limit=-1 composer.phar install
+   ```
+
+**Note:** When installing outside Docker, ensure:
+- Your PHP version matches the project requirements (PHP 8.1+)
+- Required PHP extensions are installed (intl, pdo_mysql, xml, etc.)
+- You've configured the .env file with appropriate database settings for your local environment
 
 ### 5. Set Up the Database
 
@@ -394,4 +443,3 @@ tile-expert-app/
 
 Submit issues or pull requests to the GitHub repository:  
 https://github.com/Vimpil/tileExpertMiddlePHPtestTask/
-
