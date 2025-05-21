@@ -37,15 +37,15 @@ services:
     volumes:
       - ./docker/mysql/dump.sql:/docker-entrypoint-initdb.d/dump.sql
     ports:
-      - "3307:3306"
+      - "${MYSQL_TEST_PORT:-3307}:3306"
     profiles:
       - test
 
   manticore:
     image: manticoresearch/manticore
     ports:
-      - "${MANTICORE_PORT}:9306"
-      - "9308:9308"
+      - "${MANTICORE_PORT}:9308"
+      - "${MANTICORE_HTTP_PORT:-9308}:9308"
     volumes:
       - ./manticore.conf:/etc/manticoresearch/manticore.conf
       - ./manticore_data:/var/lib/manticore
@@ -57,7 +57,7 @@ services:
     image: phpmyadmin/phpmyadmin
     restart: always
     ports:
-      - "8080:80"        # Порт, на котором будет доступен phpMyAdmin на вашем хосте
+      - "${PHPMYADMIN_PORT:-8080}:80"  # Порт, на котором будет доступен phpMyAdmin на вашем хосте
     environment:
       PMA_HOST: db_test       # Имя сервиса базы данных (MySQL)
       PMA_USER: user     # Опционально, можно оставить пустым и вводить при входе

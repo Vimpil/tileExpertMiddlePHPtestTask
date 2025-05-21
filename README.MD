@@ -34,15 +34,15 @@ cd tileExpertMiddlePHPtestTask
 
 ### 2. Configure Environment Variables
 
-Copy the example environment file and adjust as needed:
+By default, the repository includes a `.env.test` file for testing in Docker.  
+If you need to run the application outside Docker or with custom settings, copy and edit the example environment file:
 
 ```sh
 cp .env.example .env
-```
 
 Edit `.env` to set ports and database credentials:
 
-```
+```env
 APP_ENV=test
 APP_DEBUG=1
 KERNEL_CLASS='App\Kernel'
@@ -50,7 +50,7 @@ APP_SECRET='$ecretf0rt3st'
 SYMFONY_DEPRECATIONS_HELPER=999999
 PHP_PORT=9000
 MYSQL_PORT=3306
-MANTICORE_PORT=9306
+MANTICORE_PORT=9308
 DATABASE_URL="mysql://root:root@db_test:3306/test"
 ```
 
@@ -59,7 +59,14 @@ DATABASE_URL="mysql://root:root@db_test:3306/test"
 Use Docker Compose to build and start the application, MySQL, and Manticore Search:
 
 ```sh
+# Start the Docker containers for the test profile (php, MySQL, Manticore, etc.)
 docker-compose --profile test up
+
+# Stop and remove the containers for the test profile
+docker-compose --profile test down
+
+# Clear the Symfony application cache (run after containers are up)
+php bin/console cache:clear
 ```
 
 Alternatively, use the Makefile:
@@ -112,7 +119,7 @@ curl http://localhost:9308/json/search -d '{"index":"orders","query":{"match_all
 
 ## Running the Application
 
-The application is accessible at [http://localhost:${APP_PORT}](http://localhost:8080) (default: http://localhost:8080).
+The application is accessible at [http://localhost:8080](http://localhost:8080) \(default: http://localhost:8080\).
 
 ## Useful Commands
 
@@ -135,9 +142,129 @@ The application is accessible at [http://localhost:${APP_PORT}](http://localhost
   - `factory` (e.g., cobsa)
   - `collection` (e.g., manual)
   - `article` (e.g., manu7530bcbm-manualbaltic7-5x30)
+- **Example Response:**
+  ```json
+  {
+    "price": "56.65",
+    "factory": "cobsa",
+    "collection": "manual",
+    "article": "manu7530bcbm-manualbaltic7-5x30"
+  }
+  ```
+- **How to Test:**
+  ```sh
+  php vendor/bin/phpunit tests/Controller/PriceControllerTest.php
+  ```
+
+### Endpoint #2: Get Order Statistics
+
+- **Method:** GET
+- **URL:** `/orders/stats`
+- **Query Parameters:**
+  - `page` (optional, default: 1) - Pagination page number
+  - `limit` (optional, default: 10) - Number of results per page
+  - `group_by` (optional, default: 'month') - Group by 'day', 'month', or 'year'
+- **Example Response:**
+  ```json
+  {
+    "page": 1,
+    "limit": 10,
+    "total_pages": 5,
+    "group_by": "month",
+    "data": [
+      {
+        "date": "2024-06",
+        "count": 15,
+        "total_amount": 12500.50
+      },
+      ...
+    ]
+  }
+  ```
+- **How to Test:**
+  ```sh
+  php vendor/bin/phpunit tests/Controller/OrderControllerTest.php --filter testGetOrderStats
+  ```
+
+### Endpoint #3: Save Orders via XML
+
+- **Method:** POST
+- **URL:** `/soap`
+- **Headers:** 
+  - `Content-Type: application/xml`
+- **Request Body:** XML data with order information
+  ```xml
+  <?xml version="1.0" encoding="UTF-8"?>
+  <order>
+    <name>Test Order</name>
+    <user_id>123</user_id>
+    <number>TST-001</number>
+    <status>2</status>
+    <email>test@example.com</email>
+    <!-- Additional fields -->
+  </order>
+  ```
+- **Example Response:**
+  ```json
+  {
+    "message": "Order created",
+    "id": 42
+  }
+  ```
+- **How to Test:**
+  ```sh
+  php vendor/bin/phpunit tests/Controller/OrderControllerTest.php --filter testCreateOrder
+  ```
+
+### Endpoint #4: Retrieve a Single Order
+
+- **Method:** GET
+- **URL:** `/orders/{id}`
+- **URL Parameters:**
+  - `id` - The ID of the order to retrieve
+- **Example Response:**
+  ```json
+  {
+    "id": 42,
+    "create_date": "2024-06-15 14:30:22"
+  }
+  ```
+- **How to Test:**
+  ```sh
+  php vendor/bin/phpunit tests/Controller/OrderControllerTest.php --filter testGetOneOrder
+  ```
+
+### Search Endpoint: Search Orders
+
+- **Method:** GET
+- **URL:** `/search`
+- **Query Parameters:**
+  - `q` - Search query (leave empty to match all orders)
+- **Example Response:**
+  ```json
+  {
+    "hits": [
+      {
+        "_id": "42",
+        "_score": 1,
+        "_source": {
+          "id": 42,
+          "name": "Test Order",
+          "email": "test@example.com"
+        }
+      }
+    ],
+    "total": 1,
+    "error": null,
+    "warning": null
+  }
+  ```
+- **How to Test:**
+  ```sh
+  php vendor/bin/phpunit tests/Controller/OrderControllerTest.php --filter testSearchOrders
+  ```
 
 **Note:**  
-- `NGINX_PORT` and `MANTICORE_PORT` are present in `.env` but commented out or not used in `.env.test`.
 - The application is configured to use the test database only when running in Docker.
 
 ### Test Search Service
@@ -219,7 +346,7 @@ tile-expert-app/
 
 2. **Normalized Denormalized Fields**  
    - *Improvement:* Removed `manager_name`, `manager_email`, `manager_phone`, `carrier_name`, `carrier_contact_data`, and `warehouse_data` from `order`\. Used foreign keys to `managers`, `carriers`, and `warehouses` instead\.  
-   - *Comment:* Reduces data redundancy, ensures consistency \(e\.g\., updating a manager’s email updates all orders\), and saves storage\.
+   - *Comment:* Reduces data redundancy, ensures consistency \(e\.g\., updating a manager's email updates all orders\), and saves storage\.
 
 3. **Consolidated Delivery Times**  
    - *Improvement:* Moved all delivery time fields \(`delivery_time_min`, `confirm_min`, etc\.\) from `order` and `order_article` to `delivery_times` with a `type` ENUM\.  
@@ -239,7 +366,7 @@ tile-expert-app/
 
 7. **Standardized Character Encoding**  
    - *Improvement:* Set `utf8mb4_unicode_ci` for all tables and columns, with `SET NAMES utf8mb4` at the schema level\.  
-   - *Comment:* Ensures consistent Unicode support for international characters, matching the second schema’s standard\.
+   - *Comment:* Ensures consistent Unicode support for international characters, matching the second schema's standard\.
 
 8. **Split Large `order` Table**  
    - *Improvement:* Created `clients` table for `client_name`, `surname`, `company_name`, `sex`, `email`\. Created `delivery_addresses` table for `delivery_country`, `region`, `city`, `address`, etc\.  
@@ -267,3 +394,4 @@ tile-expert-app/
 
 Submit issues or pull requests to the GitHub repository:  
 https://github.com/Vimpil/tileExpertMiddlePHPtestTask/
+

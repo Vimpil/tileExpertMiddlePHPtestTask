@@ -2,28 +2,39 @@
 namespace App\Service;
 
 use GuzzleHttp\Client;
+use GuzzleHttp\Exception\GuzzleException;
 use Manticoresearch\Client as ManticoreClient;
 
+/**
+ * Service for searching orders using Manticore Search
+ */
 class SearchService
 {
-    private $client;
-    private $httpClient;
-    private $manticoreHost;
-    private $manticorePort;
+    private Client $httpClient;
+    private string $manticoreHost;
+    private int $manticorePort;
 
-    public function __construct()
+    /**
+     * @param string $host Manticore search host
+     * @param int $port Manticore search port
+     */
+    public function __construct(string $host, int $port)
     {
-        $this->manticoreHost = 'myapp-manticore-1';
-        $this->manticorePort = 9308;
-        
-        // Keep original client for compatibility
-        $this->client = new ManticoreClient(['host' => $this->manticoreHost, 'port' => $this->manticorePort]);
+        $this->manticoreHost = $host;
+        $this->manticorePort = $port;
         
         // Add HTTP client for direct JSON API access
         $this->httpClient = new Client();
     }
 
-    public function searchOrders(string $query): array
+    /**
+     * Search for orders matching the provided query
+     *
+     * @param string $query The search query
+     * @param int $limit Maximum number of results to return
+     * @return array Search results with hits, total count, and any errors
+     */
+    public function searchOrders(string $query, int $limit = 10): array
     {
         try {
             // Use direct HTTP JSON API which matches the curl approach
@@ -31,7 +42,7 @@ class SearchService
             
             $requestParams = [
                 'index' => 'orders',
-                'limit' => 1
+                'limit' => $limit
             ];
 
             if (trim($query) === '') {
@@ -78,6 +89,13 @@ class SearchService
                 'warning' => isset($rawResponse['warning']) ? $rawResponse['warning'] : null,
             ];
 
+        } catch (GuzzleException $e) {
+            return [
+                'hits' => [],
+                'total' => 0,
+                'error' => 'Network error: ' . $e->getMessage(),
+                'warning' => null,
+            ];
         } catch (\Exception $e) {
             return [
                 'hits' => [],

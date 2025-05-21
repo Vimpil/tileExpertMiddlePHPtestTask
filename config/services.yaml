@@ -3,6 +3,14 @@
 
 # Put parameters here that don't need to change on each machine where the app is deployed
 # https://symfony.com/doc/current/best_practices.html#use-parameters-for-application-configuration
+parameters:
+    # Default values for local development or if no env var is set
+    env(MANTICORE_HOST): 'localhost'
+    env(MANTICORE_PORT): '9308'  # Changed to string instead of integer
+
+    # This is the parameter your service will consume
+    manticore.host: '%env(MANTICORE_HOST)%'
+    manticore.port: '%env(int:MANTICORE_PORT)%'  # Added int processor to convert string to integer
 
 services:
     # default configuration for services in *this* file
@@ -19,12 +27,8 @@ services:
 
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones
-    App\Service\SearchService:
-        autowire: true
-    App\Repository\OrdersRepository:
-        tags: [ 'doctrine.repository_service' ]
     GuzzleHttp\Client:
-        arguments: [ ]
+        public: false
 
     App\Service\ManticoreConfig:
         arguments:
@@ -34,6 +38,18 @@ services:
         autoconfigure: true
 
     Manticoresearch\Client:
+        # Use correct constructor format with config array instead of named arguments
         arguments:
-            - { host: 'myapp-manticore-1', port: 9308 }
+            - { host: '%manticore.host%', port: '%manticore.port%' }
         public: true
+
+    App\Command\TestManticoreCommand:
+        arguments:
+            $host: '%manticore.host%'
+            $port: '%manticore.port%'
+        tags: ['console.command']
+
+    App\Service\SearchService:
+        arguments:
+            $host: '%manticore.host%'
+            $port: '%manticore.port%'

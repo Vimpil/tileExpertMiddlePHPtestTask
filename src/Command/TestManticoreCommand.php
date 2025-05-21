@@ -14,15 +14,13 @@ class TestManticoreCommand extends Command
     private $host;
     private $port;
 
-    public function __construct(ManticoreClient $manticoreClient)
+    public function __construct(ManticoreClient $manticoreClient, string $host, int $port)
     {
         parent::__construct('app:test-manticore');
         $this->manticoreClient = $manticoreClient;
         $this->httpClient = new Client();
-        
-        // Get these values from the same place they're defined in services.yaml
-        $this->host = 'myapp-manticore-1';
-        $this->port = 9308;
+        $this->host = $host;
+        $this->port = $port;
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
