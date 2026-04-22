@@ -32,8 +32,21 @@ class OrderController extends AbstractController
             return new JsonResponse(['error' => 'Invalid group_by parameter'], JsonResponse::HTTP_BAD_REQUEST);
         }
 
-        $stats = $this->doctrine->getRepository(Orders::class)->getOrderStats($page, $limit, $groupBy);
-        return new JsonResponse($stats);
+        try {
+            $stats = $this->doctrine->getRepository(Orders::class)->getOrderStats($page, $limit, $groupBy);
+            return new JsonResponse($stats);
+        } catch (\InvalidArgumentException $exception) {
+            return new JsonResponse(['error' => $exception->getMessage()], JsonResponse::HTTP_BAD_REQUEST);
+        } catch (\OutOfBoundsException) {
+            return new JsonResponse([
+                'page' => $page,
+                'limit' => $limit,
+                'total_pages' => 0,
+                'total_items' => 0,
+                'group_by' => $groupBy,
+                'data' => [],
+            ]);
+        }
     }
 
     /**
@@ -117,8 +130,8 @@ class OrderController extends AbstractController
         $em->persist($order);
         $em->flush();
 
-        // Return created resource info
-        return $this->json([
+        // Return created resource info without relying on AbstractController state
+        return new JsonResponse([
             'message' => 'Order created',
             'id' => $order->getId(),
         ], 201);
@@ -126,7 +139,7 @@ class OrderController extends AbstractController
 
     public function searchOrders(Request $request, SearchService $searchService): JsonResponse
     {
-        $query = $request->query->get('q');
+        $query = (string) $request->query->get('q', '');
         $results = $searchService->searchOrders($query);
         return new JsonResponse($results);
     }

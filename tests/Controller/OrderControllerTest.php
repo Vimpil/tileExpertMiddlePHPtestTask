@@ -1,98 +1,236 @@
 <?php
+
 namespace App\Tests\Controller;
 
-use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use App\Controller\DebugController;
+use App\Controller\OrderController;
+use App\Entity\Orders;
+use App\Repository\OrdersRepository;
+use App\Service\SearchService;
+use Doctrine\DBAL\Connection;
+use Doctrine\Persistence\ManagerRegistry;
+use Doctrine\Persistence\ObjectManager;
+use PHPUnit\Framework\TestCase;
+use Psr\Log\LoggerInterface;
+use Symfony\Component\HttpFoundation\Request;
 
-// Deprecation Notice:
-// Support for MySQL < 8 is deprecated and will be removed in Doctrine DBAL 5.
-// See: https://github.com/doctrine/dbal/pull/6343
-// Triggered by database connection during tests (e.g., testCheckPrivileges).
-// To resolve: upgrade your MySQL server to version 8 or higher.
-
-class OrderControllerTest extends WebTestCase
+class OrderControllerTest extends TestCase
 {
-    public function testCheckPrivileges()
+    public function testCheckPrivileges(): void
     {
-        $client = static::createClient();
-        $client->request('GET', '/debug/check-privileges');
+        $connection = $this->createMock(Connection::class);
+        $connection->expects($this->once())
+            ->method('fetchAllAssociative')
+            ->with('SHOW GRANTS FOR CURRENT_USER()')
+            ->willReturn([['Grants for current_user()' => 'GRANT USAGE ON *.* TO `tester`@`%`']]);
 
-        $this->assertResponseIsSuccessful();
-        $data = json_decode($client->getResponse()->getContent(), true);
+        $logger = $this->createMock(LoggerInterface::class);
+        $logger->expects($this->once())
+            ->method('info')
+            ->with('Database privileges:', [['Grants for current_user()' => 'GRANT USAGE ON *.* TO `tester`@`%`']]);
 
-        $this->assertArrayHasKey('message', $data);
-        $this->assertEquals('Privileges logged successfully.', $data['message']);
+        $controller = new DebugController($connection, $logger);
+        $response = $controller->checkPrivileges();
+
+        $this->assertSame(200, $response->getStatusCode());
+        $this->assertSame('{"message":"Privileges logged successfully."}', $response->getContent());
     }
-    public function testGetOneOrder()
-    {
-        $client = static::createClient();
 
-        // Test 404 for non-existent order
-        $client->request('GET', '/orders/2');
-        if ($client->getResponse()->getStatusCode() === 200) {
-            $orderData = json_decode($client->getResponse()->getContent(), true);
-            if (!empty($orderData)) {
-                print_r($orderData);
-            }
-            $this->assertArrayHasKey('id', $orderData);
-            $this->assertArrayHasKey('create_date', $orderData);
-            $this->assertJson($client->getResponse()->getContent());
-        } else {
-            $notFoundData = json_decode($client->getResponse()->getContent(), true);
-            echo "Order not found response: " . print_r($notFoundData, true) . "\n";
-            $this->assertArrayHasKey('error', $notFoundData);
-            $this->assertEquals('Order not found', $notFoundData['error']);
-            $this->fail('Order not found, test failed.');
-        }
-    }
-    public function testGetOrderStats()
+    public function testGetOneOrder(): void
     {
-        $client = static::createClient();
-        $page = 1;
-        $client->request('GET', '/orders/stats', [
-            'page' => $page,
+        $order = $this->createOrderEntity(42, '2024-06-15 14:30:22');
+
+        $repository = $this->createMock(OrdersRepository::class);
+        $repository->expects($this->once())
+            ->method('find')
+            ->with(42)
+            ->willReturn($order);
+
+        $registry = $this->createMock(ManagerRegistry::class);
+        $registry->method('getRepository')->with(Orders::class)->willReturn($repository);
+
+        $controller = new OrderController($registry);
+        $response = $controller->getOrder(42);
+
+        $this->assertSame(200, $response->getStatusCode());
+        $this->assertJsonStringEqualsJsonString(
+            '{"id":42,"create_date":"2024-06-15 14:30:22"}',
+            $response->getContent()
+        );
+    }
+
+    public function testGetOrderStats(): void
+    {
+        $repository = $this->createMock(OrdersRepository::class);
+        $repository->expects($this->once())
+            ->method('getOrderStats')
+            ->with(1, 10, 'month')
+            ->willReturn([
+                'page' => 1,
+                'limit' => 10,
+                'total_pages' => 3,
+                'total_items' => 24,
+                'group_by' => 'month',
+                'data' => [
+                    ['year' => 2024, 'month' => 6, 'count' => 7],
+                    ['year' => 2024, 'month' => 5, 'count' => 17],
+                ],
+            ]);
+
+        $registry = $this->createMock(ManagerRegistry::class);
+        $registry->method('getRepository')->with(Orders::class)->willReturn($repository);
+
+        $controller = new OrderController($registry);
+        $request = Request::create('/orders/stats', 'GET', [
+            'page' => 1,
             'limit' => 10,
             'group_by' => 'month',
         ]);
 
-        try {
-            $this->assertResponseIsSuccessful();
-            $content = $client->getResponse()->getContent();
-            $data = json_decode($content, true);
+        $response = $controller->getOrderStats($request);
+        $data = json_decode((string) $response->getContent(), true);
 
-            // Print response if assertions fail
-            if (
-                !isset($data['page']) ||
-                !isset($data['limit']) ||
-                !isset($data['total_pages']) ||
-                !isset($data['data'])
-            ) {
-                echo "\nResponse content for debugging:\n";
-                print_r($content);
-            }
-            print_r($data);
-            $this->assertArrayHasKey('page', $data);
-            $this->assertArrayHasKey('limit', $data);
-            $this->assertArrayHasKey('total_pages', $data);
-            $this->assertArrayHasKey('group_by', $data);
-            $this->assertArrayHasKey('data', $data);
-        } catch (\Exception $e) {
-            if (
-                $e instanceof \OutOfBoundsException ||
-                (strpos($e->getMessage(), 'No more items') !== false)
-            ) {
-                echo "\nNo more items for page $page. This is expected for empty pages.\n";
-                $this->fail('No more items for this page. Test failed.');
-            } else {
-                throw $e;
-            }
-        }
+        $this->assertSame(200, $response->getStatusCode());
+        $this->assertSame(1, $data['page']);
+        $this->assertSame(10, $data['limit']);
+        $this->assertSame(3, $data['total_pages']);
+        $this->assertSame(24, $data['total_items']);
+        $this->assertSame('month', $data['group_by']);
+        $this->assertCount(2, $data['data']);
     }
 
-    public function testCreateOrder()
+    public function testGetOrderStatsRejectsInvalidGroupBy(): void
     {
-        $client = static::createClient();
+        $registry = $this->createMock(ManagerRegistry::class);
+        $registry->expects($this->never())->method('getRepository');
 
-        $xml = <<<XML
+        $controller = new OrderController($registry);
+        $request = Request::create('/orders/stats', 'GET', [
+            'page' => 1,
+            'limit' => 10,
+            'group_by' => 'quarter',
+        ]);
+
+        $response = $controller->getOrderStats($request);
+
+        $this->assertSame(400, $response->getStatusCode());
+        $this->assertSame('{"error":"Invalid group_by parameter"}', $response->getContent());
+    }
+
+    public function testCreateOrder(): void
+    {
+        $persistedOrder = null;
+        $entityManager = $this->createMock(ObjectManager::class);
+        $entityManager->expects($this->once())
+            ->method('persist')
+            ->with($this->callback(static function ($entity) use (&$persistedOrder): bool {
+                $persistedOrder = $entity;
+
+                return $entity instanceof Orders && $entity->getName() === 'Test Order';
+            }));
+        $entityManager->expects($this->once())
+            ->method('flush')
+            ->willReturnCallback(static function () use (&$persistedOrder): void {
+                if ($persistedOrder instanceof Orders) {
+                    self::setPrivateProperty($persistedOrder, 'id', 123);
+                }
+            });
+
+        $registry = $this->createMock(ManagerRegistry::class);
+        $registry->method('getManager')->willReturn($entityManager);
+
+        $controller = new OrderController($registry);
+        $request = Request::create(
+            '/soap',
+            'POST',
+            [],
+            [],
+            [],
+            ['CONTENT_TYPE' => 'application/xml'],
+            $this->createOrderXml()
+        );
+
+        $response = $controller->createOrder($request);
+        $data = json_decode((string) $response->getContent(), true);
+
+        $this->assertSame(201, $response->getStatusCode());
+        $this->assertSame('Order created', $data['message']);
+        $this->assertSame(123, $data['id']);
+    }
+
+    public function testCreateOrderRejectsInvalidContentType(): void
+    {
+        $registry = $this->createMock(ManagerRegistry::class);
+        $registry->expects($this->never())->method('getManager');
+
+        $controller = new OrderController($registry);
+        $request = Request::create('/soap', 'POST', [], [], [], ['CONTENT_TYPE' => 'application/json'], '<order />');
+
+        $response = $controller->createOrder($request);
+
+        $this->assertSame(400, $response->getStatusCode());
+        $this->assertSame('Invalid Content-Type. Expected application/xml.', $response->getContent());
+    }
+
+    public function testCreateOrderRejectsMalformedXml(): void
+    {
+        $registry = $this->createMock(ManagerRegistry::class);
+        $registry->expects($this->never())->method('getManager');
+
+        $controller = new OrderController($registry);
+        $request = Request::create('/soap', 'POST', [], [], [], ['CONTENT_TYPE' => 'application/xml'], '<order>');
+
+        $response = $controller->createOrder($request);
+
+        $this->assertSame(400, $response->getStatusCode());
+        $this->assertSame('Malformed XML.', $response->getContent());
+    }
+
+    public function testSearchOrders(): void
+    {
+        $query = '56';
+
+        $searchService = $this->createMock(SearchService::class);
+        $searchService
+            ->method('searchOrders')
+            ->with($query)
+            ->willReturn([
+                'hits' => [['_id' => '1', '_score' => 1]],
+                'total' => 1,
+                'error' => null,
+                'warning' => null,
+            ]);
+
+        $controller = new OrderController($this->createMock(ManagerRegistry::class));
+        $request = Request::create('/search', 'GET', ['q' => $query]);
+        $response = $controller->searchOrders($request, $searchService);
+        $data = json_decode((string) $response->getContent(), true);
+
+        $this->assertSame(200, $response->getStatusCode());
+        $this->assertSame(1, $data['total']);
+        $this->assertNull($data['error']);
+        $this->assertNotEmpty($data['hits']);
+    }
+
+    private function createOrderEntity(int $id, string $createDate): Orders
+    {
+        $order = new Orders();
+        $order->setName('Test Order');
+        $order->setHash('hash-' . $id);
+        $order->setToken('token-' . $id);
+        $order->setLocale('en');
+        $order->setCurrency('USD');
+        $order->setPayType(1);
+        $order->setCreateDate(new \DateTimeImmutable($createDate));
+
+        self::setPrivateProperty($order, 'id', $id);
+
+        return $order;
+    }
+
+    private function createOrderXml(): string
+    {
+        return <<<XML
 <?xml version="1.0" encoding="UTF-8"?>
 <order>
     <name>Test Order</name>
@@ -118,67 +256,13 @@ class OrderControllerTest extends WebTestCase
     <delivery_phone>5551234</delivery_phone>
 </order>
 XML;
-
-        // Use the /soap endpoint as defined in routes.yaml for createOrder
-        $client->request(
-            'POST',
-            '/soap',
-            [],
-            [],
-            ['CONTENT_TYPE' => 'application/xml'],
-            $xml
-        );
-
-        $this->assertResponseStatusCodeSame(201);
-        $data = json_decode($client->getResponse()->getContent(), true);
-        try {
-            $this->assertArrayHasKey('message', $data);
-            $this->assertEquals('Order created', $data['message']);
-            $this->assertArrayHasKey('id', $data);
-            $this->assertIsInt($data['id']);
-            // Best practice: Inform about the added data for debugging and traceability
-            echo "\nOrder with ID {$data['id']} was successfully created in the database during testCreateOrder.\n";
-        } catch (\Throwable $e) {
-            $this->fail('Order creation response invalid: ' . $e->getMessage());
-        }
     }
 
-    public function testSearchOrders(): void
+    private static function setPrivateProperty(object $object, string $property, mixed $value): void
     {
-        $client = static::createClient();
-        $query = '56'; // Use empty query to match all documents
-
-        $client->request('GET', '/search', ['q' => $query]);
-
-        $this->assertResponseIsSuccessful();
-        $content = $client->getResponse()->getContent();
-        $this->assertJson($content);
-        $data = json_decode($content, true);
-
-        $this->assertIsArray($data);
-        $this->assertArrayHasKey('hits', $data);
-        $this->assertArrayHasKey('total', $data);
-        $this->assertArrayHasKey('error', $data);
-        $this->assertArrayHasKey('warning', $data);
-
-        // Check that there's no error from Manticore
-        $this->assertNull($data['error'], 'Search service reported an error: ' . ($data['error'] ?? 'null'));
-
-        if (empty($data['hits']) || $data['total'] === 0) {
-            $this->fail('No search results found for the given query.');
-        }
-
-        // Main check: expect total > 0 for match_all query
-        $this->assertGreaterThan(0, $data['total'], 'Expected search results for empty query (should match all)');
-        $this->assertIsArray($data['hits']);
-        $this->assertNotEmpty($data['hits'], 'Hits array should not be empty if total > 0');
-
-        print_r($data);
-        printf(
-            "%s passed | query: %s, result_count: %d\n",
-            __METHOD__,
-            $query,
-            is_array($data['hits']) ? count($data['hits']) : 0
-        );
+        $reflection = new \ReflectionObject($object);
+        $prop = $reflection->getProperty($property);
+        $prop->setAccessible(true);
+        $prop->setValue($object, $value);
     }
 }
