@@ -24,9 +24,9 @@ class PriceController extends AbstractController
     public function getPrice(Request $request, ValidatorInterface $validator): JsonResponse
     {
         $priceRequest = new PriceRequest();
-        $priceRequest->factory = $request->query->get('factory');
-        $priceRequest->collection = $request->query->get('collection');
-        $priceRequest->article = $request->query->get('article');
+        $priceRequest->factory = (string) $request->query->get('factory', '');
+        $priceRequest->collection = (string) $request->query->get('collection', '');
+        $priceRequest->article = (string) $request->query->get('article', '');
 
         $errors = $validator->validate($priceRequest);
 

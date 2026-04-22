@@ -2,6 +2,7 @@
 
 namespace App\Entity;
 
+use App\Repository\OrdersArticleRepository;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: OrdersArticleRepository::class)]
