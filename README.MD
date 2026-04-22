@@ -1,8 +1,6 @@
 # Tile Expert Order Management Application
 
-- **Update:** Changed "Symfony 7.2" to "Symfony 6.x" to match typical doctrine.yaml/project structure.
-
-This is a Symfony 6.x application that provides endpoints for retrieving tile prices, managing orders, and searching orders with Manticore Search. The application is containerized with Docker Compose and includes tests, a MySQL database, and Manticore Search integration.
+This is a Symfony 7.2 application that provides endpoints for retrieving tile prices, managing orders, and searching orders with Manticore Search. The application is containerized with Docker Compose and includes tests, a MySQL database, and Manticore Search integration.
 
 ## Features
 
@@ -14,9 +12,30 @@ This is a Symfony 6.x application that provides endpoints for retrieving tile pr
 - MySQL database for orders and order articles.
 - PHPUnit tests for all endpoints.
 - Docker Compose setup with configurable ports.
-- **Reference:** An improved database schema is included in `docs/improved_schema.sql` for informational purposes only (not used by the application).
+- **Reference:** An improved database schema is included in `docker/mysql/improved_schema.sql` for informational purposes only (not used by the application).
 
-**Note:** Only the `test` profile is used to run Docker images in this project. All environment variables for Docker containers are defined in the `.env.test` file. The default `.env` is not used for Docker execution.
+**Note:** The project is usually run with the `test` profile. Docker Compose reads `.env` for container settings, and Symfony test runtime reads `.env.test`.
+
+## Testing Strategy
+
+The default PHPUnit suite is designed to be deterministic and portfolio-friendly:
+
+- External services such as Doctrine, Manticore Search, and database privileges are mocked in controller tests.
+- Core controller behavior is covered through success and failure paths, including validation failures.
+- You can run the suite locally without relying on a live Manticore instance or populated database.
+
+Run the tests with:
+
+```sh
+php vendor/bin/phpunit
+```
+
+For a focused controller run:
+
+```sh
+php vendor/bin/phpunit tests/Controller/OrderControllerTest.php
+php vendor/bin/phpunit tests/Controller/PriceControllerTest.php
+```
 ## Prerequisites
 
 - Docker and Docker Compose
@@ -34,13 +53,10 @@ cd tileExpertMiddlePHPtestTask
 
 ### 2. Configure Environment Variables
 
-By default, the repository includes a `.env.test` file for testing in Docker.  
-If you need to run the application outside Docker or with custom settings, copy and edit the example environment file:
+By default, the repository includes `.env` and `.env.test` files.  
+Docker Compose reads `.env` for container port mappings, and Symfony test runtime reads `.env.test`.
 
-```sh
-cp .env.example .env
-
-Edit `.env` to set ports and database credentials:
+Edit `.env` and `.env.test` to set ports and database credentials:
 
 ```env
 APP_ENV=test
@@ -48,9 +64,11 @@ APP_DEBUG=1
 KERNEL_CLASS='App\Kernel'
 APP_SECRET='$ecretf0rt3st'
 SYMFONY_DEPRECATIONS_HELPER=999999
+APP_PORT=8080
 PHP_PORT=9000
 MYSQL_PORT=3306
 MANTICORE_PORT=9308
+PHPMYADMIN_PORT=8081
 DATABASE_URL="mysql://root:root@db_test:3306/test"
 ```
 
@@ -128,7 +146,7 @@ If you prefer to install dependencies directly on your host machine:
    ```
 
 **Note:** When installing outside Docker, ensure:
-- Your PHP version matches the project requirements (PHP 8.1+)
+- Your PHP version matches the project requirements (PHP 8.3+ recommended; Composer requires >=8.2 and this project uses PHPUnit 12)
 - Required PHP extensions are installed (intl, pdo_mysql, xml, etc.)
 - You've configured the .env file with appropriate database settings for your local environment
 
@@ -168,7 +186,9 @@ curl http://localhost:9308/json/search -d '{"index":"orders","query":{"match_all
 
 ## Running the Application
 
-The application is accessible at [http://localhost:8080](http://localhost:8080) \(default: http://localhost:8080\).
+The application is accessible at [http://localhost:8080](http://localhost:8080) (default: `APP_PORT=8080`).
+
+`phpMyAdmin` is available at [http://localhost:8081](http://localhost:8081) (default: `PHPMYADMIN_PORT=8081`).
 
 ## Useful Commands
 
