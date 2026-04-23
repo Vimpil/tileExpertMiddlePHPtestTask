@@ -95,13 +95,13 @@ Use Docker Compose to build and start the application, MySQL, and Manticore Sear
 
 ```sh
 # Start the Docker containers for the test profile (php, MySQL, Manticore, etc.)
-docker-compose --profile test up
+docker compose --profile test up
 
 # Stop and remove the containers for the test profile
-docker-compose --profile test down
+docker compose --profile test down
 
 # Clear the Symfony application cache (run after containers are up)
-php bin/console cache:clear
+docker compose exec php php bin/console cache:clear
 ```
 
 ### 4. Install Dependencies
@@ -111,7 +111,7 @@ php bin/console cache:clear
 Install PHP dependencies via Composer:
 
 ```sh
-docker-compose exec php composer install
+docker compose exec php composer install
 ```
 
 #### Option 2: Install Dependencies Outside Docker
@@ -166,19 +166,19 @@ If you prefer to install dependencies directly on your host machine:
 Apply the database schema:
 
 ```sh
-docker-compose exec php php bin/console doctrine:schema:update --force
+docker compose exec php php bin/console doctrine:schema:update --force
 ```
 
 Validate the schema:
 
 ```sh
-docker-compose exec php php bin/console doctrine:schema:validate
+docker compose exec php php bin/console doctrine:schema:validate
 ```
 
 (Optional) Generate sample orders for testing:
 
 ```sh
-docker-compose exec php php bin/console app:generate-orders
+docker compose exec php php bin/console app:generate-orders
 ```
 
 ### 6. Configure Manticore Search
@@ -186,13 +186,14 @@ docker-compose exec php php bin/console app:generate-orders
 Index the orders table in Manticore:
 
 ```sh
-docker-compose exec manticore indexer orders
+docker compose exec manticore indexer orders
 ```
 
 Test Manticore connectivity:
 
 ```sh
-curl http://localhost:9308/json/search -d '{"index":"orders","query":{"match_all":{}},"limit":5}'
+# Windows PowerShell users: use curl.exe because curl is an alias for Invoke-WebRequest.
+curl.exe http://localhost:9308/json/search -d '{"index":"orders","query":{"match_all":{}},"limit":5}'
 ```
 
 ## Running the Application
@@ -204,13 +205,13 @@ The application is accessible at [http://localhost:8080](http://localhost:8080) 
 ## Useful Commands
 
 - Clear Symfony cache:  
-  `docker-compose exec php php bin/console cache:clear`
+  `docker compose exec php php bin/console cache:clear`
 - Clear Doctrine metadata cache:  
-  `docker-compose exec php php bin/console doctrine:cache:clear-metadata`
+  `docker compose exec php php bin/console doctrine:cache:clear-metadata`
 - Generate database migration diff:  
-  `docker-compose exec php php bin/console doctrine:migrations:diff`
+  `docker compose exec php php bin/console doctrine:migrations:diff`
 - Check Doctrine mapping:  
-  `docker-compose exec php php bin/console doctrine:mapping:info`
+  `docker compose exec php php bin/console doctrine:mapping:info`
 
 ## Endpoints
 
@@ -271,7 +272,11 @@ The application is accessible at [http://localhost:8080](http://localhost:8080) 
         "count": 15,
         "total_amount": 12500.50
       },
-      ...
+      {
+        "date": "2024-05",
+        "count": 12,
+        "total_amount": 9800.00
+      }
     ]
   }
   ```
@@ -364,9 +369,9 @@ The application is accessible at [http://localhost:8080](http://localhost:8080) 
 ### Test Search Service
 
 - View SearchService:  
-  `docker-compose exec manticore cat /var/www/html/src/Service/SearchService.php`
+  `docker compose exec manticore cat /var/www/html/src/Service/SearchService.php`
 - Run Manticore test command:  
-  `docker-compose exec php php bin/console app:test-manticore`
+  `docker compose exec php php bin/console app:test-manticore`
 
 ## Database Schema Reference
 
@@ -379,22 +384,26 @@ The application is accessible at [http://localhost:8080](http://localhost:8080) 
 
 - **Cache Issues:**
   ```sh
-  docker-compose exec php php bin/console cache:clear
-  docker-compose exec php php bin/console doctrine:cache:clear-metadata
+  docker compose exec php php bin/console cache:clear
+  docker compose exec php php bin/console doctrine:cache:clear-metadata
   ```
 - **Database Permissions:**
   Grant privileges if needed:
   ```sh
-  docker-compose exec db mysql -u root -proot -e "GRANT ALL PRIVILEGES ON my_database.* TO 'user'@'%'; FLUSH PRIVILEGES;"
+  # Default profile
+  docker compose exec db mysql -u root -proot -e "GRANT ALL PRIVILEGES ON my_database.* TO 'user'@'%'; FLUSH PRIVILEGES;"
+
+  # Test profile
+  docker compose exec db_test mysql -u root -proot -e "GRANT ALL PRIVILEGES ON test.* TO 'user'@'%'; FLUSH PRIVILEGES;"
   ```
   Or use:
   ```sh
-  docker-compose exec php php bin/console app:grant-privileges
+  docker compose exec php php bin/console app:grant-privileges
   ```
 - **Composer Issues:**
   Check Composer version:
   ```sh
-  docker-compose exec php composer --version
+  docker compose exec php composer --version
   ```
 
 ## Project Structure

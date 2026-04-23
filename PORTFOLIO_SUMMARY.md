@@ -4,9 +4,9 @@
 
 I stabilized the test suite for the Tile Expert Order Management application (Symfony 7.2), a multi-endpoint API for managing tile orders, pricing, and full-text search via Manticore Search.
 
-**Status:** ✅ All 10 PHPUnit tests passing (56 assertions) in Docker PHP 8.3
+**Status:** ✅ All 11 PHPUnit tests passing (65 assertions) in Docker PHP 8.3
 **Tests:** `tests/Controller/OrderControllerTest.php` + `tests/Controller/PriceControllerTest.php`  
-**Commits:** 5 clean, atomic changes (see below)
+**Commits:** 8 commits in total (5 core changes + 3 documentation follow-ups; see below)
 
 ---
 
@@ -43,11 +43,14 @@ I stabilized the test suite for the Tile Expert Order Management application (Sy
 ## Commit History
 
 ```
+7e5939b docs: update portfolio summary to reflect current test suite
+781bb15 docs: polish README for MLH portfolio
+b21ebe4 Stabilize price fallback and portfolio docs
+8d4b849 fix(price): return 503 when upstream price source fails
+8b53d94 docs: align test and manticore commands for Docker and PowerShell
+b0ee1ea Update README with recruiter-friendly MLH verification section
+8aca61f Add portfolio summary for MLH Fellowship submission
 a26b416 Add GitHub Actions workflow for automated PHPUnit test runs
-bf1fcad Harden price request validation and align OrdersArticle mapping
-b98930b Polish README with deterministic test strategy and path fixes
-c885c28 Align environment configuration for Docker-based test runtime
-eae9bb1 Stabilize controller tests with isolated unit coverage
 ```
 
 ---
@@ -67,7 +70,7 @@ PHPUnit 12.1.5 by Sebastian Bergmann
 Runtime:       PHP 8.3.30
 Configuration: /var/www/html/phpunit.dist.xml
 
-..........                                                        10 / 10 (100%)
+...........                                                       11 / 11 (100%)
 
 Time: ~4s, Memory: 10.00 MB
 
@@ -85,7 +88,7 @@ Price Controller (App\Tests\Controller\PriceController)
  ✔ Get price
  ✔ Get price rejects invalid parameters
 
-OK (10 tests, 56 assertions)
+OK (11 tests, 65 assertions)
 ```
 
 ### CI/CD (GitHub Actions)
