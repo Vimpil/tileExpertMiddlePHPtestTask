@@ -35,7 +35,13 @@ The default PHPUnit suite is designed to be deterministic and portfolio-friendly
 - Core controller behavior is covered through success and failure paths, including validation failures.
 - You can run the suite locally without relying on a live Manticore instance or populated database.
 
-Run the tests with:
+Run the full tests (recommended on Windows and macOS):
+
+```sh
+docker compose run --rm --no-deps php php vendor/bin/phpunit --testdox
+```
+
+If you run tests on your host machine, use PHP 8.3+:
 
 ```sh
 php vendor/bin/phpunit
@@ -44,8 +50,8 @@ php vendor/bin/phpunit
 For a focused controller run:
 
 ```sh
-php vendor/bin/phpunit tests/Controller/OrderControllerTest.php
-php vendor/bin/phpunit tests/Controller/PriceControllerTest.php
+docker compose run --rm --no-deps php php vendor/bin/phpunit tests/Controller/OrderControllerTest.php
+docker compose run --rm --no-deps php php vendor/bin/phpunit tests/Controller/PriceControllerTest.php
 ```
 ## Prerequisites
 
@@ -89,13 +95,13 @@ Use Docker Compose to build and start the application, MySQL, and Manticore Sear
 
 ```sh
 # Start the Docker containers for the test profile (php, MySQL, Manticore, etc.)
-docker-compose --profile test up
+docker compose --profile test up -d
 
 # Stop and remove the containers for the test profile
-docker-compose --profile test down
+docker compose --profile test down
 
 # Clear the Symfony application cache (run after containers are up)
-php bin/console cache:clear
+docker compose exec php php bin/console cache:clear
 ```
 
 Alternatively, use the Makefile:
@@ -111,7 +117,7 @@ make up
 Install PHP dependencies via Composer:
 
 ```sh
-docker-compose exec php composer install
+docker compose exec php composer install
 ```
 
 #### Option 2: Install Dependencies Outside Docker
@@ -166,19 +172,19 @@ If you prefer to install dependencies directly on your host machine:
 Apply the database schema:
 
 ```sh
-docker-compose exec php php bin/console doctrine:schema:update --force
+docker compose exec php php bin/console doctrine:schema:update --force
 ```
 
 Validate the schema:
 
 ```sh
-docker-compose exec php php bin/console doctrine:schema:validate
+docker compose exec php php bin/console doctrine:schema:validate
 ```
 
 (Optional) Generate sample orders for testing:
 
 ```sh
-docker-compose exec php php bin/console app:generate-orders
+docker compose exec php php bin/console app:generate-orders
 ```
 
 ### 6. Configure Manticore Search
@@ -186,13 +192,21 @@ docker-compose exec php php bin/console app:generate-orders
 Index the orders table in Manticore:
 
 ```sh
-docker-compose exec manticore indexer orders
+docker compose exec manticore indexer orders
 ```
 
 Test Manticore connectivity:
 
 ```sh
-curl http://localhost:9308/json/search -d '{"index":"orders","query":{"match_all":{}},"limit":5}'
+curl -X POST "http://localhost:9308/json/search" \
+  -H "Content-Type: application/json" \
+  -d '{"index":"orders","query":{"match_all":{}},"limit":5}'
+```
+
+PowerShell equivalent:
+
+```powershell
+Invoke-RestMethod -Method Post -Uri "http://localhost:9308/json/search" -ContentType "application/json" -Body '{"index":"orders","query":{"match_all":{}},"limit":5}'
 ```
 
 ## Running the Application
@@ -204,13 +218,13 @@ The application is accessible at [http://localhost:8080](http://localhost:8080) 
 ## Useful Commands
 
 - Clear Symfony cache:  
-  `docker-compose exec php php bin/console cache:clear`
+  `docker compose exec php php bin/console cache:clear`
 - Clear Doctrine metadata cache:  
-  `docker-compose exec php php bin/console doctrine:cache:clear-metadata`
+  `docker compose exec php php bin/console doctrine:cache:clear-metadata`
 - Generate database migration diff:  
-  `docker-compose exec php php bin/console doctrine:migrations:diff`
+  `docker compose exec php php bin/console doctrine:migrations:diff`
 - Check Doctrine mapping:  
-  `docker-compose exec php php bin/console doctrine:mapping:info`
+  `docker compose exec php php bin/console doctrine:mapping:info`
 
 ## Endpoints
 
