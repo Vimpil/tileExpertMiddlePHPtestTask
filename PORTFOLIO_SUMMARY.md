@@ -4,7 +4,7 @@
 
 I stabilized the test suite for the Tile Expert Order Management application (Symfony 7.2), a multi-endpoint API for managing tile orders, pricing, and full-text search via Manticore Search.
 
-**Status:** ✅ All 10 PHPUnit tests passing (56 assertions) in Docker PHP 8.3  
+**Status:** ✅ All 11 PHPUnit tests passing (65 assertions) in Docker PHP 8.3  
 **Tests:** `tests/Controller/OrderControllerTest.php` + `tests/Controller/PriceControllerTest.php`  
 **Commits:** 5 clean, atomic changes (see below)
 
@@ -67,7 +67,7 @@ PHPUnit 12.1.5 by Sebastian Bergmann
 Runtime:       PHP 8.3.30
 Configuration: /var/www/html/phpunit.dist.xml
 
-..........                                                        10 / 10 (100%)
+...........                                                       11 / 11 (100%)
 
 Time: ~4s, Memory: 10.00 MB
 
@@ -84,8 +84,9 @@ Order Controller (App\Tests\Controller\OrderController)
 Price Controller (App\Tests\Controller\PriceController)
  ✔ Get price
  ✔ Get price rejects invalid parameters
+ ✔ Get price returns fallback response when fetcher fails
 
-OK (10 tests, 56 assertions)
+OK (11 tests, 65 assertions)
 ```
 
 ### CI/CD (GitHub Actions)
@@ -145,7 +146,7 @@ Tests automatically run on every push via `.github/workflows/tests.yml`. View re
 - `src/Controller/OrderController.php` — Use `JsonResponse` directly
 - `src/Controller/PriceController.php` — Explicit casting, default empty strings
 - `tests/Controller/OrderControllerTest.php` — 269 lines of deterministic tests (was 165, now with negative paths)
-- `tests/Controller/PriceControllerTest.php` — Added validation failure test
+- `tests/Controller/PriceControllerTest.php` — Added validation failure and graceful fallback tests
 - `src/DTO/PriceRequest.php` — Modernized to PHP 8 attributes
 - `src/Entity/OrdersArticle.php` — Fixed Doctrine mapping import
 - `config/packages/doctrine.yaml`, `.env`, `.env.test`, `docker-compose.yml` — Runtime alignment

@@ -9,9 +9,11 @@ This is a Symfony 7.2 application that provides endpoints for retrieving tile pr
 docker compose run --rm --no-deps php php vendor/bin/phpunit --testdox
 ```
 
-**Expected result:** 10 tests, 56 assertions, all passing in <4s.
+**Expected result:** 11 tests, 65 assertions, all passing in <4s.
 
 **What was accomplished:** Test suite stabilization — isolated controllers with mocked services, removed kernel dependencies, added negative-path coverage. See [`PORTFOLIO_SUMMARY.md`](PORTFOLIO_SUMMARY.md) for full technical details and impact.
+
+**Price endpoint hardening:** The `/price` endpoint now reads its upstream URL and timeout from `PRICE_BASE_URL` and `PRICE_HTTP_TIMEOUT`, and it returns a controlled JSON fallback when the external provider is unavailable instead of a 503.
 
 ## Features
 
@@ -35,17 +37,13 @@ The default PHPUnit suite is designed to be deterministic and portfolio-friendly
 - Core controller behavior is covered through success and failure paths, including validation failures.
 - You can run the suite locally without relying on a live Manticore instance or populated database.
 
-Run the full tests (recommended on Windows and macOS):
+Run the tests in Docker with:
 
 ```sh
 docker compose run --rm --no-deps php php vendor/bin/phpunit --testdox
 ```
 
-If you run tests on your host machine, use PHP 8.3+:
-
-```sh
-php vendor/bin/phpunit
-```
+If you prefer running on the host machine, use PHP 8.3+ because PHPUnit 12 is required.
 
 For a focused controller run:
 
@@ -86,6 +84,8 @@ PHP_PORT=9000
 MYSQL_PORT=3306
 MANTICORE_PORT=9308
 PHPMYADMIN_PORT=8081
+PRICE_BASE_URL=https://tile.expert/fr/tile
+PRICE_HTTP_TIMEOUT=10
 DATABASE_URL="mysql://root:root@db_test:3306/test"
 ```
 
@@ -95,13 +95,13 @@ Use Docker Compose to build and start the application, MySQL, and Manticore Sear
 
 ```sh
 # Start the Docker containers for the test profile (php, MySQL, Manticore, etc.)
-docker compose --profile test up -d
+docker-compose --profile test up
 
 # Stop and remove the containers for the test profile
-docker compose --profile test down
+docker-compose --profile test down
 
 # Clear the Symfony application cache (run after containers are up)
-docker compose exec php php bin/console cache:clear
+php bin/console cache:clear
 ```
 
 Alternatively, use the Makefile:
@@ -117,7 +117,7 @@ make up
 Install PHP dependencies via Composer:
 
 ```sh
-docker compose exec php composer install
+docker-compose exec php composer install
 ```
 
 #### Option 2: Install Dependencies Outside Docker
@@ -172,19 +172,19 @@ If you prefer to install dependencies directly on your host machine:
 Apply the database schema:
 
 ```sh
-docker compose exec php php bin/console doctrine:schema:update --force
+docker-compose exec php php bin/console doctrine:schema:update --force
 ```
 
 Validate the schema:
 
 ```sh
-docker compose exec php php bin/console doctrine:schema:validate
+docker-compose exec php php bin/console doctrine:schema:validate
 ```
 
 (Optional) Generate sample orders for testing:
 
 ```sh
-docker compose exec php php bin/console app:generate-orders
+docker-compose exec php php bin/console app:generate-orders
 ```
 
 ### 6. Configure Manticore Search
@@ -192,21 +192,13 @@ docker compose exec php php bin/console app:generate-orders
 Index the orders table in Manticore:
 
 ```sh
-docker compose exec manticore indexer orders
+docker-compose exec manticore indexer orders
 ```
 
 Test Manticore connectivity:
 
 ```sh
-curl -X POST "http://localhost:9308/json/search" \
-  -H "Content-Type: application/json" \
-  -d '{"index":"orders","query":{"match_all":{}},"limit":5}'
-```
-
-PowerShell equivalent:
-
-```powershell
-Invoke-RestMethod -Method Post -Uri "http://localhost:9308/json/search" -ContentType "application/json" -Body '{"index":"orders","query":{"match_all":{}},"limit":5}'
+curl http://localhost:9308/json/search -d '{"index":"orders","query":{"match_all":{}},"limit":5}'
 ```
 
 ## Running the Application
@@ -218,13 +210,13 @@ The application is accessible at [http://localhost:8080](http://localhost:8080) 
 ## Useful Commands
 
 - Clear Symfony cache:  
-  `docker compose exec php php bin/console cache:clear`
+  `docker-compose exec php php bin/console cache:clear`
 - Clear Doctrine metadata cache:  
-  `docker compose exec php php bin/console doctrine:cache:clear-metadata`
+  `docker-compose exec php php bin/console doctrine:cache:clear-metadata`
 - Generate database migration diff:  
-  `docker compose exec php php bin/console doctrine:migrations:diff`
+  `docker-compose exec php php bin/console doctrine:migrations:diff`
 - Check Doctrine mapping:  
-  `docker compose exec php php bin/console doctrine:mapping:info`
+  `docker-compose exec php php bin/console doctrine:mapping:info`
 
 ## Endpoints
 
@@ -236,6 +228,9 @@ The application is accessible at [http://localhost:8080](http://localhost:8080) 
   - `factory` (e.g., cobsa)
   - `collection` (e.g., manual)
   - `article` (e.g., manu7530bcbm-manualbaltic7-5x30)
+- **Configuration:**
+  - `PRICE_BASE_URL` controls the external tile expert URL.
+  - `PRICE_HTTP_TIMEOUT` controls the upstream request timeout in seconds.
 - **Example Response:**
   ```json
   {
@@ -243,6 +238,17 @@ The application is accessible at [http://localhost:8080](http://localhost:8080) 
     "factory": "cobsa",
     "collection": "manual",
     "article": "manu7530bcbm-manualbaltic7-5x30"
+  }
+  ```
+- **Fallback response when the provider is unavailable:**
+  ```json
+  {
+    "price": null,
+    "factory": "cobsa",
+    "collection": "manual",
+    "article": "manu7530bcbm-manualbaltic7-5x30",
+    "source_status": "unavailable",
+    "warning": "Price source is temporarily unavailable. Please try again later."
   }
   ```
 - **How to Test:**

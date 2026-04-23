@@ -1,25 +1,34 @@
 <?php
 namespace App\Service;
 
+use App\Exception\ExternalPriceSourceException;
 use GuzzleHttp\Client;
 use Symfony\Component\DomCrawler\Crawler;
 
 class PriceFetcher
 {
-    private Client $client;
-    private const BASE_URL = 'https://tile.expert/fr/tile';
-
-    public function __construct(Client $client)
-    {
-        $this->client = $client;
+    public function __construct(
+        private Client $client,
+        private string $baseUrl,
+        private float $timeout,
+    ) {
     }
 
     public function fetchPrice(string $factory, string $collection, string $article): ?array
     {
-        $url = sprintf('%s/%s/%s/a/%s', self::BASE_URL, $factory, $collection, $article);
+        $url = sprintf('%s/%s/%s/a/%s', rtrim($this->baseUrl, '/'), $factory, $collection, $article);
 
         try {
-            $response = $this->client->get($url);
+            $response = $this->client->get($url, [
+                'timeout' => $this->timeout,
+                'connect_timeout' => $this->timeout,
+                'http_errors' => false,
+            ]);
+
+            if ($response->getStatusCode() >= 400) {
+                throw new ExternalPriceSourceException(sprintf('Price source returned HTTP %d for %s', $response->getStatusCode(), $url));
+            }
+
             $html = $response->getBody()->getContents();
             $crawler = new Crawler($html);
 
@@ -36,8 +45,8 @@ class PriceFetcher
                 'collection' => $collection,
                 'article' => $article,
             ];
-        } catch (\Exception $e) {
-            throw new \RuntimeException('Failed to fetch price: ' . $e->getMessage());
+        } catch (\Throwable $e) {
+            throw new ExternalPriceSourceException('Failed to fetch price from the external provider.', 0, $e);
         }
     }
 }

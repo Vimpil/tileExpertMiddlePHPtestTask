@@ -1,13 +1,14 @@
 <?php
 namespace App\Controller;
 
+use App\Exception\ExternalPriceSourceException;
+use App\Service\PriceFetcher;
+use App\DTO\PriceRequest;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
-use App\Service\PriceFetcher;
 use Symfony\Component\HttpFoundation\Response;
 use Psr\Log\LoggerInterface;
-use App\DTO\PriceRequest;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 class PriceController extends AbstractController
@@ -47,17 +48,36 @@ class PriceController extends AbstractController
             }
 
             return new JsonResponse($priceData, Response::HTTP_OK);
-        } catch (\Exception $e) {
+        } catch (ExternalPriceSourceException $e) {
             $this->logger->error('Error fetching price', [
                 'exception' => $e,
                 'factory' => $priceRequest->factory,
                 'collection' => $priceRequest->collection,
                 'article' => $priceRequest->article,
             ]);
-            return new JsonResponse(
-                ['error' => 'Price source is temporarily unavailable. Please try again later.'],
-                Response::HTTP_SERVICE_UNAVAILABLE
-            );
+            return new JsonResponse([
+                'price' => null,
+                'factory' => $priceRequest->factory,
+                'collection' => $priceRequest->collection,
+                'article' => $priceRequest->article,
+                'source_status' => 'unavailable',
+                'warning' => 'Price source is temporarily unavailable. Please try again later.',
+            ], Response::HTTP_OK);
+        } catch (\Throwable $e) {
+            $this->logger->error('Unexpected error fetching price', [
+                'exception' => $e,
+                'factory' => $priceRequest->factory,
+                'collection' => $priceRequest->collection,
+                'article' => $priceRequest->article,
+            ]);
+            return new JsonResponse([
+                'price' => null,
+                'factory' => $priceRequest->factory,
+                'collection' => $priceRequest->collection,
+                'article' => $priceRequest->article,
+                'source_status' => 'unavailable',
+                'warning' => 'Price source is temporarily unavailable. Please try again later.',
+            ], Response::HTTP_OK);
         }
     }
 }

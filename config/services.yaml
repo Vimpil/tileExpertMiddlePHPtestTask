@@ -11,6 +11,8 @@ parameters:
     # This is the parameter your service will consume
     manticore.host: '%env(MANTICORE_HOST)%'
     manticore.port: '%env(int:MANTICORE_PORT)%'  # Added int processor to convert string to integer
+    price.base_url: '%env(PRICE_BASE_URL)%'
+    price.timeout: '%env(float:PRICE_HTTP_TIMEOUT)%'
 
 services:
     # default configuration for services in *this* file
@@ -29,6 +31,11 @@ services:
     # please note that last definitions always *replace* previous ones
     GuzzleHttp\Client:
         public: false
+
+    App\Service\PriceFetcher:
+        arguments:
+            $baseUrl: '%price.base_url%'
+            $timeout: '%price.timeout%'
 
     App\Service\ManticoreConfig:
         arguments:

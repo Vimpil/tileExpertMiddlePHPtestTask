@@ -67,7 +67,7 @@ class PriceControllerTest extends TestCase
         $this->assertNotEmpty($data['errors']);
     }
 
-    public function testGetPriceReturnsServiceUnavailableWhenFetcherFails(): void
+    public function testGetPriceReturnsFallbackResponseWhenFetcherFails(): void
     {
         $priceFetcher = $this->createMock(PriceFetcher::class);
         $priceFetcher
@@ -90,8 +90,13 @@ class PriceControllerTest extends TestCase
 
         $data = json_decode((string) $response->getContent(), true);
 
-        $this->assertSame(503, $response->getStatusCode());
-        $this->assertSame('Price source is temporarily unavailable. Please try again later.', $data['error']);
+        $this->assertSame(200, $response->getStatusCode());
+        $this->assertNull($data['price']);
+        $this->assertSame('unavailable', $data['source_status']);
+        $this->assertSame('Price source is temporarily unavailable. Please try again later.', $data['warning']);
+        $this->assertSame('cobsa', $data['factory']);
+        $this->assertSame('manual', $data['collection']);
+        $this->assertSame('manu7530bcbm-manualbaltic7-5x30', $data['article']);
     }
 
     private function createValidatingValidator(): ValidatorInterface
