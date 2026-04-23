@@ -55,7 +55,7 @@ docker compose run --rm --no-deps php php vendor/bin/phpunit tests/Controller/Pr
 
 - Docker and Docker Compose
 - Git
-- Make (optional, for simplified commands)
+- Make is not required for this repository
 
 ## Setup Instructions
 
@@ -102,12 +102,6 @@ docker-compose --profile test down
 
 # Clear the Symfony application cache (run after containers are up)
 php bin/console cache:clear
-```
-
-Alternatively, use the Makefile:
-
-```sh
-make up
 ```
 
 ### 4. Install Dependencies
@@ -377,7 +371,7 @@ The application is accessible at [http://localhost:8080](http://localhost:8080) 
 ## Database Schema Reference
 
 > **Note:**  
-> The file `docs/improved_schema.sql` contains an improved version of the database schema.  
+> The file `docker/mysql/improved_schema.sql` contains an improved version of the database schema.
 > This file is provided for informational/reference purposes only and is **not intended for import or use in the application**.  
 > The application uses its own schema as defined by Doctrine entities and migrations.
 
@@ -406,35 +400,24 @@ The application is accessible at [http://localhost:8080](http://localhost:8080) 
 ## Project Structure
 
 ```
-tile-expert-app/
-├── docker-compose.yml
-├── Dockerfile
-├── Makefile
-├── src/
-│   ├── Entity/
-│   │   ├── Order.php
-│   │   ├── OrderArticle.php
-│   ├── Repository/
-│   │   ├── OrderRepository.php
-│   ├── Controller/
-│   │   ├── OrderController.php
-│   │   ├── PriceController.php
-│   ├── Service/
-│   │   ├── SearchService.php
-│   ├── Tests/
-│   │   ├── Controller/
-│   │   │   ├── OrderControllerTest.php
-│   │   │   ├── PriceControllerTest.php
-├── config/
-│   ├── services.yaml
-│   ├── packages/
-│   │   ├── doctrine.yaml
-├── manticore.conf
-├── .env
-├── composer.json
-├── README.md
-├── docs/
-│   ├── improved_schema.sql   # Reference only, not for import/use
+tileExpertMiddlePHPtestTask/
+|-- docker-compose.yml
+|-- Dockerfile
+|-- src/
+|   |-- Controller/
+|   |-- Entity/
+|   |-- Repository/
+|   `-- Service/
+|-- tests/
+|-- config/
+|-- docker/
+|   `-- mysql/
+|       `-- improved_schema.sql   # Reference only, not for import/use
+|-- manticore.conf
+|-- .env
+|-- .env.test
+|-- composer.json
+`-- README.MD
 ```
 
 ## Database Schema Improvements
