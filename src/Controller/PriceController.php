@@ -54,7 +54,10 @@ class PriceController extends AbstractController
                 'collection' => $priceRequest->collection,
                 'article' => $priceRequest->article,
             ]);
-            return new JsonResponse(['error' => 'An internal error occurred'], Response::HTTP_INTERNAL_SERVER_ERROR);
+            return new JsonResponse(
+                ['error' => 'Price source is temporarily unavailable. Please try again later.'],
+                Response::HTTP_SERVICE_UNAVAILABLE
+            );
         }
     }
 }

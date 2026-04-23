@@ -67,6 +67,33 @@ class PriceControllerTest extends TestCase
         $this->assertNotEmpty($data['errors']);
     }
 
+    public function testGetPriceReturnsServiceUnavailableWhenFetcherFails(): void
+    {
+        $priceFetcher = $this->createMock(PriceFetcher::class);
+        $priceFetcher
+            ->expects($this->once())
+            ->method('fetchPrice')
+            ->willThrowException(new \RuntimeException('Upstream timeout'));
+
+        $logger = $this->createMock(LoggerInterface::class);
+        $logger->expects($this->once())->method('error');
+
+        $controller = new PriceController($priceFetcher, $logger);
+        $response = $controller->getPrice(
+            Request::create('/price', 'GET', [
+                'factory' => 'cobsa',
+                'collection' => 'manual',
+                'article' => 'manu7530bcbm-manualbaltic7-5x30',
+            ]),
+            $this->createValidatingValidator()
+        );
+
+        $data = json_decode((string) $response->getContent(), true);
+
+        $this->assertSame(503, $response->getStatusCode());
+        $this->assertSame('Price source is temporarily unavailable. Please try again later.', $data['error']);
+    }
+
     private function createValidatingValidator(): ValidatorInterface
     {
         $validator = $this->createMock(ValidatorInterface::class);
